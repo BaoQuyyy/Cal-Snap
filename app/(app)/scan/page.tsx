@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { saveMeal } from '@/app/actions/meals'
-import { Camera, Upload, Loader2, Flame, Beef, Wheat, Droplets, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react'
+import { Camera, ImageIcon, Loader2, Flame, Beef, Wheat, Droplets, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react'
 import { toast } from '@/components/toast'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -19,7 +19,8 @@ export default function ScanPage() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
-    const fileInputRef = useRef<HTMLInputElement>(null)
+    const cameraInputRef = useRef<HTMLInputElement>(null)
+    const galleryInputRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
 
     const handleFile = useCallback((file: File) => {
@@ -96,7 +97,8 @@ export default function ScanPage() {
         setResult(null)
         setErrorMsg(null)
         setSaved(false)
-        if (fileInputRef.current) fileInputRef.current.value = ''
+        if (cameraInputRef.current) cameraInputRef.current.value = ''
+        if (galleryInputRef.current) galleryInputRef.current.value = ''
     }
 
     const confidenceColor = {
@@ -116,34 +118,52 @@ export default function ScanPage() {
             <div className="glass-card rounded-[2rem] overflow-hidden border border-white/40">
                 {!imageData ? (
                     <div
-                        className="flex flex-col items-center justify-center min-h-[200px] h-64 cursor-pointer hover:bg-white/50 transition-all duration-200 gap-4 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 m-2 touch-target"
-                        onClick={() => fileInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center min-h-[200px] h-64 gap-4 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 m-2"
                         onDrop={handleDrop}
                         onDragOver={(e) => e.preventDefault()}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-                        aria-label="Upload food image"
                     >
                         <div className="p-4 rounded-2xl bg-emerald-100 text-emerald-600">
                             <Camera className="h-8 w-8" />
                         </div>
                         <div className="text-center">
-                            <p className="font-semibold text-slate-800">Drop an image here or click to upload</p>
-                            <p className="text-sm text-slate-500 mt-1">Supports JPG, PNG, WEBP</p>
+                            <p className="font-semibold text-slate-800">Chụp ảnh hoặc chọn từ thư viện</p>
+                            <p className="text-sm text-slate-500 mt-1">JPG, PNG, WEBP</p>
                         </div>
-                        <span className="text-sm font-medium text-emerald-600 flex items-center gap-2">
-                            <Upload className="h-4 w-4" />
-                            Choose File
-                        </span>
+                        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                            <button
+                                type="button"
+                                onClick={() => cameraInputRef.current?.click()}
+                                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl hoverboard-gradient text-white font-semibold text-sm min-h-[44px] touch-target transition-all active:scale-95"
+                            >
+                                <Camera className="h-5 w-5" />
+                                Chụp ảnh
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => galleryInputRef.current?.click()}
+                                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-100 text-slate-700 font-semibold text-sm min-h-[44px] touch-target hover:bg-slate-200 transition-all active:scale-95"
+                            >
+                                <ImageIcon className="h-5 w-5" />
+                                Thư viện ảnh
+                            </button>
+                        </div>
+                        <p className="text-xs text-slate-400">hoặc kéo thả ảnh vào đây</p>
                         <input
-                            ref={fileInputRef}
+                            ref={cameraInputRef}
                             type="file"
                             accept="image/*"
                             capture="environment"
                             className="hidden"
                             onChange={handleFileInput}
-                            aria-label="Food image file input"
+                            aria-label="Chụp ảnh món ăn"
+                        />
+                        <input
+                            ref={galleryInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileInput}
+                            aria-label="Chọn ảnh từ thư viện"
                         />
                     </div>
                 ) : (
