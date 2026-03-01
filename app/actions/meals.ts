@@ -10,6 +10,7 @@ export async function saveMeal(data: {
     carbs: number
     fat: number
     imageUrl?: string
+    loggedAt?: string // YYYY-MM-DD, defaults to today
 }) {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -17,6 +18,8 @@ export async function saveMeal(data: {
     if (authError || !user) {
         return { error: 'Not authenticated' }
     }
+
+    const loggedAt = data.loggedAt ?? new Date().toISOString().split('T')[0]
 
     const { error } = await supabase.from('meal_logs').insert({
         user_id: user.id,
@@ -26,7 +29,7 @@ export async function saveMeal(data: {
         carbs: data.carbs,
         fat: data.fat,
         image_url: data.imageUrl ?? null,
-        logged_at: new Date().toISOString().split('T')[0],
+        logged_at: loggedAt,
     } as never)
 
     if (error) {

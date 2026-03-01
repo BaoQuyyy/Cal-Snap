@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
+import type { FunctionDeclaration } from '@google/generative-ai'
+import { saveMeal } from '@/app/actions/meals'
 
 const SYSTEM_PROMPT = `You are CalSnap AI, a friendly coach specialized in calorie tracking, health, and fitness. Your expertise includes:
 - Calorie counting & macro tracking (protein, carbs, fat)
@@ -9,9 +11,60 @@ const SYSTEM_PROMPT = `You are CalSnap AI, a friendly coach specialized in calor
 - Sức khỏe (health) - general wellness
 - Fitness routines for different goals
 
-IMPORTANT: You are fluent in both English and Tiếng Việt. Respond in the same language the user writes in. If they write in Vietnamese, reply in Vietnamese. If they write in English, reply in English. You can mix or switch if the user switches.
+IMPORTANT: You are fluent in both English and Tiếng Việt. Respond in the same language the user writes in.
 
-Keep responses concise, practical, and friendly. Use emojis occasionally. When users ask about their personal data (meals, calories logged), remind them to check their CalSnap dashboard. Focus on actionable advice.`
+When the user mentions they ate something with calories (e.g. "hôm qua tôi ăn cơm tấm 400 calo", "yesterday I had pho ~500 calories"), ALWAYS use the log_meal function to add it to their meal log. Extract:
+- food_name: the food/dish name
+- calories: the number (estimate if not given, e.g. cơm tấm ~400, pho ~500)
+- date: "today", "yesterday", "hôm qua", "hôm kia" etc. → convert to YYYY-MM-DD
+- protein, carbs, fat: estimate from typical values for that food (optional, can use 0 if unknown)
+
+Examples: "ăn cơm tấm 400 calo hôm qua" → log_meal(food_name="Cơm tấm", calories=400, date=yesterday)
+Keep responses concise. After logging, confirm briefly (e.g. "Đã thêm Cơm tấm 400 kcal vào log của bạn!").`
+
+const LOG_MEAL_DECLARATION = {
+  name: 'log_meal',
+  description: 'Add a meal to the user\'s calorie log. Use when the user mentions eating something with calories (e.g. "hôm qua tôi ăn cơm tấm 400 calo").',
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      food_name: { type: SchemaType.STRING, description: 'Name of the food or dish' },
+      calories: { type: SchemaType.NUMBER, description: 'Calories' },
+      date: { type: SchemaType.STRING, description: 'Date YYYY-MM-DD' },
+      protein: { type: SchemaType.NUMBER, description: 'Protein grams' },
+      carbs: { type: SchemaType.NUMBER, description: 'Carbs grams' },
+      fat: { type: SchemaType.NUMBER, description: 'Fat grams' },
+    },
+    required: ['food_name', 'calories', 'date'],
+  },
+} as FunctionDeclaration
+
+function getDateFromRelative(relative: string): string {
+  const today = new Date()
+  const d = new Date(today)
+  const lower = relative.toLowerCase()
+  if (lower.includes('hôm nay') || lower.includes('today')) {
+    return d.toISOString().split('T')[0]
+  }
+  if (lower.includes('hôm qua') || lower.includes('yesterday')) {
+    d.setDate(d.getDate() - 1)
+    return d.toISOString().split('T')[0]
+  }
+  if (lower.includes('hôm kia') || lower.includes('day before')) {
+    d.setDate(d.getDate() - 2)
+    return d.toISOString().split('T')[0]
+  }
+  if (lower.includes('2 days ago') || lower.includes('hai ngày trước')) {
+    d.setDate(d.getDate() - 2)
+    return d.toISOString().split('T')[0]
+  }
+  if (lower.includes('3 days ago') || lower.includes('ba ngày trước')) {
+    d.setDate(d.getDate() - 3)
+    return d.toISOString().split('T')[0]
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(relative)) return relative
+  return today.toISOString().split('T')[0]
+}
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.GOOGLE_AI_API_KEY
@@ -34,6 +87,7 @@ export async function POST(req: NextRequest) {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: SYSTEM_PROMPT,
+      tools: [{ functionDeclarations: [LOG_MEAL_DECLARATION] }],
     })
 
     const chat = model.startChat({
@@ -48,8 +102,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Last message must be from user' }, { status: 400 })
     }
 
-    const result = await chat.sendMessage(lastMessage.content)
-    const response = result.response
+    let result = await chat.sendMessage(lastMessage.content)
+    let response = result.response
+    const functionCalls = response.functionCalls?.()
+
+    if (functionCalls && functionCalls.length > 0) {
+      for (const fc of functionCalls) {
+        if (fc.name === 'log_meal' && fc.args) {
+          const args = fc.args as {
+            food_name?: string
+            calories?: number
+            date?: string
+            protein?: number
+            carbs?: number
+            fat?: number
+          }
+          const foodName = args.food_name || 'Meal'
+          const calories = typeof args.calories === 'number' ? Math.round(args.calories) : 0
+          const dateStr = args.date ? getDateFromRelative(String(args.date)) : new Date().toISOString().split('T')[0]
+          const protein = typeof args.protein === 'number' ? args.protein : 0
+          const carbs = typeof args.carbs === 'number' ? args.carbs : 0
+          const fat = typeof args.fat === 'number' ? args.fat : 0
+
+          const saveResult = await saveMeal({
+            foodName,
+            calories,
+            protein,
+            carbs,
+            fat,
+            loggedAt: dateStr,
+          })
+
+          const funcResponse = saveResult.error
+            ? { error: saveResult.error }
+            : { success: true, message: `Đã thêm ${foodName} (${calories} kcal) vào ngày ${dateStr}` }
+
+          result = await chat.sendMessage([
+            {
+              functionResponse: {
+                name: 'log_meal',
+                response: funcResponse,
+              },
+            },
+          ])
+          response = result.response
+        }
+      }
+    }
+
     const reply = response.text()
 
     return NextResponse.json({ reply: reply || 'Sorry, I could not generate a response.' })
