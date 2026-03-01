@@ -68,21 +68,45 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    const protectedPaths = ['/', '/scan', '/log', '/profile', '/chat']
+    const protectedPaths = ['/', '/scan', '/log', '/profile', '/chat', '/fitness-plan']
     const isProtected = protectedPaths.some(
         (p) => pathname === p || pathname.startsWith(p + '/')
     )
 
+    // Chưa login mà vào trang protected → redirect login
     if (!user && isProtected) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
+    // Đã login mà vào login/register → redirect về home
     if (user && (pathname === '/login' || pathname === '/register')) {
         const url = request.nextUrl.clone()
         url.pathname = '/'
         return NextResponse.redirect(url)
+    }
+
+    // Đã login → kiểm tra onboarding
+    if (
+        user &&
+        !pathname.startsWith('/onboarding') &&
+        !pathname.startsWith('/auth') &&
+        !pathname.startsWith('/api') &&
+        !pathname.startsWith('/login') &&
+        !pathname.startsWith('/register')
+    ) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('onboarding_completed')
+            .eq('id', user.id)
+            .single()
+
+        if (profile && profile.onboarding_completed === false) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/onboarding'
+            return NextResponse.redirect(url)
+        }
     }
 
     return supabaseResponse
