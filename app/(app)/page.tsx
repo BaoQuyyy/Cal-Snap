@@ -6,6 +6,14 @@ import { WeeklyChart } from '@/components/weekly-chart'
 import { HabitCards } from '@/components/habit-cards'
 import { ProgressCard } from '@/components/progress-card'
 import { getDailyHabits, getStreakAndWeeklyMeals } from '@/app/actions/habits'
+import { NutritionAlert } from '@/components/nutrition-alert'
+import { JourneyProgress } from '@/components/journey-progress'
+import { WaterTracker } from '@/components/water-tracker'
+import { WeeklyReport } from '@/components/weekly-report'
+import { WeightCheckin } from '@/components/weight-checkin'
+import { ShareAchievement } from '@/components/share-achievement'
+import { getAdherenceData, getWeeklyReport } from '@/app/actions/adherence'
+import { getWeightHistory } from '@/app/actions/weight'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -91,6 +99,20 @@ export default async function DashboardPage() {
         exercise_calories: habits.exercise_calories ?? 0,
     } : null
 
+    const [adherenceData, weeklyReport, weightHistory] = await Promise.all([
+        getAdherenceData(today),
+        getWeeklyReport(),
+        getWeightHistory(),
+    ])
+
+    const waterMl = profile?.water_updated_date === today ? (profile?.water_ml_today ?? 0) : 0
+    const waterGoalMl = Math.round((((profile as any)?.fitness_plan?.water_liters ?? 2.5) as number) * 1000)
+    const milestone =
+        (adherenceData?.journeyScore ?? 0) >= 90 ? 'Champion 🏆' :
+        (adherenceData?.journeyScore ?? 0) >= 70 ? 'On Fire 🔥' :
+        (adherenceData?.journeyScore ?? 0) >= 50 ? 'Progressing 💪' :
+        'Getting There 🌱'
+
     return (
         <div className="bg-[#F8FAFC] min-h-screen font-sans page-enter min-w-0 overflow-x-hidden">
             <main className="p-4 lg:p-8 flex flex-col lg:flex-row gap-8 max-w-[1920px] mx-auto min-w-0">
@@ -123,6 +145,41 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                     </Link>
+
+                    {profile?.fitness_plan && adherenceData?.today && adherenceData.today.calories_actual > 0 && (
+                        <NutritionAlert status={adherenceData.today as any} />
+                    )}
+
+                    {profile?.fitness_plan && (
+                        <WaterTracker currentMl={waterMl} goalMl={waterGoalMl} />
+                    )}
+
+                    {profile?.fitness_plan && adherenceData && (
+                        <JourneyProgress
+                            journeyScore={adherenceData.journeyScore}
+                            streak={profile.journey_streak ?? 0}
+                            onTrackDays={adherenceData.onTrackDays}
+                            history={adherenceData.history}
+                        />
+                    )}
+
+                    <WeeklyReport data={weeklyReport as any} />
+
+                    {profile?.weight_kg && profile?.target_weight_kg && (
+                        <WeightCheckin
+                            currentWeight={profile.weight_kg}
+                            targetWeight={profile.target_weight_kg}
+                            history={weightHistory as any}
+                        />
+                    )}
+
+                    {adherenceData && (
+                        <ShareAchievement
+                            streak={profile?.journey_streak ?? 0}
+                            journeyScore={adherenceData.journeyScore}
+                            milestone={milestone}
+                        />
+                    )}
 
                     {/* Habit Cards */}
                     {habitsTableAvailable ? (

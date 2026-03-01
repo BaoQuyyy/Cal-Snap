@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import type { FunctionDeclaration } from '@google/generative-ai'
 import { saveMeal } from '@/app/actions/meals'
+import { createClient } from '@/lib/supabase/server'
 
-const SYSTEM_PROMPT = `You are CalSnap AI, a friendly coach specialized in calorie tracking, health, and fitness. Your expertise includes:
+const BASE_SYSTEM_PROMPT = `You are CalSnap AI, a friendly coach specialized in calorie tracking, health, and fitness. Your expertise includes:
 - Calorie counting & macro tracking (protein, carbs, fat)
 - Nutrition advice & meal planning
 - Fitness & workout suggestions
@@ -83,10 +84,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 })
     }
 
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    let planContext = ''
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      const today = new Date().toISOString().split('T')[0]
+      const { data: adherence } = await supabase
+        .from('plan_adherence')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single()
+
+      if (profile?.fitness_plan) {
+        const plan = profile.fitness_plan as any
+        planContext = `
+CONTEXT VỀ USER:
+- Mục tiêu: ${profile.goal} | BMI: ${plan.bmi}
+- Calories goal: ${plan.daily_calories} kcal/ngày
+- Protein: ${plan.daily_protein_g}g | Carbs: ${plan.daily_carbs_g}g | Fat: ${plan.daily_fat_g}g
+- Hôm nay đã ăn: ${adherence?.calories_actual ?? 0} kcal (${adherence?.protein_actual ?? 0}g protein)
+- On track hôm nay: ${adherence?.is_on_track ? 'CÓ ✅' : 'CHƯA ❌'} | Điểm: ${adherence?.adherence_score ?? 0}/100
+Dựa vào context này, đưa lời khuyên cá nhân hóa khi phù hợp.
+`
+      }
+    }
+
+    const systemPrompt = planContext
+      ? `${BASE_SYSTEM_PROMPT}\n${planContext}`
+      : BASE_SYSTEM_PROMPT
+
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      systemInstruction: SYSTEM_PROMPT,
+      systemInstruction: systemPrompt,
       tools: [{ functionDeclarations: [LOG_MEAL_DECLARATION] }],
     })
 

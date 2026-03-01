@@ -25,6 +25,12 @@ export interface Database {
           gender: 'male' | 'female' | null
           fitness_plan: Json | null
           onboarding_completed: boolean
+          // Journey / water
+          journey_score: number
+          journey_streak: number
+          last_adherence_date: string | null
+          water_ml_today: number
+          water_updated_date: string | null
         }
         Insert: {
           id: string
@@ -40,6 +46,11 @@ export interface Database {
           gender?: 'male' | 'female' | null
           fitness_plan?: Json | null
           onboarding_completed?: boolean
+          journey_score?: number
+          journey_streak?: number
+          last_adherence_date?: string | null
+          water_ml_today?: number
+          water_updated_date?: string | null
         }
         Update: {
           id?: string
@@ -55,6 +66,11 @@ export interface Database {
           gender?: 'male' | 'female' | null
           fitness_plan?: Json | null
           onboarding_completed?: boolean
+          journey_score?: number
+          journey_streak?: number
+          last_adherence_date?: string | null
+          water_ml_today?: number
+          water_updated_date?: string | null
         }
       }
       meal_logs: {
@@ -69,6 +85,7 @@ export interface Database {
           image_url: string | null
           logged_at: string
           created_at: string
+          is_favorite: boolean
         }
         Insert: {
           id?: string
@@ -81,6 +98,7 @@ export interface Database {
           image_url?: string | null
           logged_at?: string
           created_at?: string
+          is_favorite?: boolean
         }
         Update: {
           id?: string
@@ -93,6 +111,89 @@ export interface Database {
           image_url?: string | null
           logged_at?: string
           created_at?: string
+          is_favorite?: boolean
+        }
+      }
+      plan_adherence: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          calories_goal: number
+          calories_actual: number
+          protein_goal: number
+          protein_actual: number
+          carbs_goal: number
+          carbs_actual: number
+          fat_goal: number
+          fat_actual: number
+          water_goal_ml: number
+          water_actual_ml: number
+          is_on_track: boolean
+          adherence_score: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          calories_goal?: number
+          calories_actual?: number
+          protein_goal?: number
+          protein_actual?: number
+          carbs_goal?: number
+          carbs_actual?: number
+          fat_goal?: number
+          fat_actual?: number
+          water_goal_ml?: number
+          water_actual_ml?: number
+          is_on_track?: boolean
+          adherence_score?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          calories_goal?: number
+          calories_actual?: number
+          protein_goal?: number
+          protein_actual?: number
+          carbs_goal?: number
+          carbs_actual?: number
+          fat_goal?: number
+          fat_actual?: number
+          water_goal_ml?: number
+          water_actual_ml?: number
+          is_on_track?: boolean
+          adherence_score?: number
+          created_at?: string
+        }
+      }
+      weight_checkins: {
+        Row: {
+          id: string
+          user_id: string
+          weight_kg: number
+          date: string
+          note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          weight_kg: number
+          date: string
+          note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          weight_kg?: number
+          date?: string
+          note?: string | null
+          created_at?: string
         }
       }
     }
@@ -101,6 +202,8 @@ export interface Database {
 
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type MealLog = Database['public']['Tables']['meal_logs']['Row']
+export type PlanAdherenceRow = Database['public']['Tables']['plan_adherence']['Row']
+export type WeightCheckinRow = Database['public']['Tables']['weight_checkins']['Row']
 
 export interface FitnessPlan {
   bmi: number
@@ -118,6 +221,34 @@ export interface FitnessPlan {
   estimated_weeks_to_goal: number
   tips: string[]
   summary: string
+}
+
+export interface PlanAdherence {
+  id: string
+  user_id: string
+  date: string
+  calories_goal: number
+  calories_actual: number
+  protein_goal: number
+  protein_actual: number
+  carbs_goal: number
+  carbs_actual: number
+  fat_goal: number
+  fat_actual: number
+  water_goal_ml: number
+  water_actual_ml: number
+  is_on_track: boolean
+  adherence_score: number
+  created_at: string
+}
+
+export interface WeightCheckin {
+  id: string
+  user_id: string
+  weight_kg: number
+  date: string
+  note: string | null
+  created_at: string
 }
 
 export interface NutritionResult {
