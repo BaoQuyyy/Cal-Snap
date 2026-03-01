@@ -1,0 +1,20 @@
+import { Navbar } from '@/components/navbar'
+import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { InstallPrompt } from '@/components/install-prompt'
+
+export default function AppLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
+    return (
+        <div className="min-h-screen bg-[#F8FAFC]">
+            <Navbar />
+            <main className="pb-28 md:pb-8 px-4 md:px-8 pt-6 max-w-6xl mx-auto min-w-0 overflow-x-hidden">
+                {children}
+            </main>
+            <MobileBottomNav />
+            <InstallPrompt />
+        </div>
+    )
+}
