@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Flame, Flag, Utensils, Dumbbell, Sparkles, Mic, ScanLine, Barcode, Send } from 'lucide-react'
+import { Flame, Flag, Utensils, Dumbbell, Sparkles, Mic, ScanLine, Barcode, Send, ClipboardList } from 'lucide-react'
 import Link from 'next/link'
 import { WeeklyChart } from '@/components/weekly-chart'
 import { HabitCards } from '@/components/habit-cards'
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
     const totalProtein = meals?.reduce((sum, m) => sum + (m.protein ?? 0), 0) ?? 0
     const totalCarbs = meals?.reduce((sum, m) => sum + (m.carbs ?? 0), 0) ?? 0
     const totalFat = meals?.reduce((sum, m) => sum + (m.fat ?? 0), 0) ?? 0
-    const dailyGoal = profile?.daily_calorie_goal ?? 2000
+    const dailyGoal = (profile as any)?.fitness_plan?.daily_calories ?? profile?.daily_calorie_goal ?? 2000
     const caloriesLeft = Math.max(0, dailyGoal - totalCalories)
     const progressPercent = Math.min(100, (totalCalories / dailyGoal) * 100)
 
@@ -107,6 +107,22 @@ export default async function DashboardPage() {
                             <h2 className="text-xl font-bold text-slate-800">{userName} 👋</h2>
                         </div>
                     </header>
+
+                    <Link href="/fitness-plan" className="block">
+                      <div className="hoverboard-gradient rounded-[2rem] p-5 flex items-center gap-4 text-white hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20">
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                          <ClipboardList size={20} />
+                        </div>
+                        <div>
+                          <p className="font-black text-base">View My Plan 📋</p>
+                          <p className="text-emerald-100 text-xs">
+                            {(profile as any)?.fitness_plan
+                              ? `${(profile as any).fitness_plan.daily_calories} kcal · ${(profile as any).fitness_plan.weekly_workouts}x/week`
+                              : 'Set up your fitness plan'}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
 
                     {/* Habit Cards */}
                     {habitsTableAvailable ? (

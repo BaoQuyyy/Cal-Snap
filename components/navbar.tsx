@@ -14,6 +14,7 @@ const navItems = [
   { href: '/log', label: 'Log' },
   { href: '/scan', label: 'Scan' },
   { href: '/chat', label: 'Chat' },
+  { href: '/fitness-plan', label: 'My Plan' },
   { href: '/profile', label: 'Profile' },
 ]
 
