@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { MacroPill } from '@/components/macro-pill'
+import { DatePicker } from '@/components/date-picker'
 
 type Meal = {
   id: string
@@ -87,14 +88,13 @@ export default function LogPage() {
         })}
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="log-date" className="text-xs font-medium text-slate-500 shrink-0">Chọn ngày:</label>
-          <input
-            id="log-date"
-            type="date"
+          <label className="text-xs font-medium text-slate-500 shrink-0">Chọn ngày:</label>
+          <DatePicker
             value={date}
             max={today}
-            onChange={(e) => setDate(e.target.value)}
-            className="flex-1 px-4 py-2.5 rounded-2xl bg-slate-50 border-none text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            onChange={setDate}
+            placeholder="Chọn ngày"
+            className="flex-1"
           />
         </div>
       </div>
