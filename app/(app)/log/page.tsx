@@ -67,7 +67,7 @@ export default function LogPage() {
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   )
 
-  const handleRelog = async (meal: Meal) => {
+  const handleRelog = async (meal: { food_name: string; calories: number; protein: number; carbs: number; fat: number }) => {
     await relogMeal(meal)
     // Refresh nếu đang xem hôm nay
     if (date === today) {
