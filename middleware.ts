@@ -1,8 +1,47 @@
-import { updateSession } from '@/lib/supabase/middleware'
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-    return await updateSession(request)
+function hasSupabaseSessionCookie(request: NextRequest): boolean {
+    const cookies = request.cookies.getAll()
+
+    // Supabase v2 cookie name pattern: sb-<project-ref>-auth-token
+    return cookies.some(
+        (cookie) =>
+            cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')
+    )
+}
+
+const protectedPaths = ['/', '/scan', '/log', '/profile', '/chat', '/fitness-plan']
+const authPaths = ['/login', '/register']
+
+export function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl
+
+    // Let Server Action requests through without redirects (avoids "Failed to fetch")
+    if (request.headers.get('next-action') || request.headers.get('Next-Action')) {
+        return NextResponse.next()
+    }
+
+    const isProtected = protectedPaths.some(
+        (p) => pathname === p || pathname.startsWith(p + '/')
+    )
+    const isAuthPage = authPaths.some((p) => pathname === p)
+    const hasSession = hasSupabaseSessionCookie(request)
+
+    // Chưa login mà vào trang protected → redirect login
+    if (!hasSession && isProtected) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
+
+    // Đã login mà vào login/register → redirect về home
+    if (hasSession && isAuthPage) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/'
+        return NextResponse.redirect(url)
+    }
+
+    return NextResponse.next()
 }
 
 export const config = {
