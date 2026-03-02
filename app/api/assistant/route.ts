@@ -1,4 +1,3 @@
-
 // app/api/assistant/route.ts
 import { createClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
