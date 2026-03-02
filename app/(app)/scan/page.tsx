@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { saveMeal } from '@/app/actions/meals'
-import { Camera, ImageIcon, Loader2, Flame, Beef, Wheat, Droplets, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react'
+import { Camera, ImageIcon, Loader2, Flame, Beef, Wheat, Droplets, CheckCircle, AlertCircle, RotateCcw, Pencil } from 'lucide-react'
 import { toast } from '@/components/toast'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -19,6 +19,14 @@ export default function ScanPage() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(false)
+
+    // Editable fields
+    const [editFoodName, setEditFoodName] = useState('')
+    const [editCalories, setEditCalories] = useState(0)
+    const [editProtein, setEditProtein] = useState(0)
+    const [editCarbs, setEditCarbs] = useState(0)
+    const [editFat, setEditFat] = useState(0)
+
     const cameraInputRef = useRef<HTMLInputElement>(null)
     const galleryInputRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
@@ -63,6 +71,12 @@ export default function ScanPage() {
                 setState('error')
             } else {
                 setResult(data.result)
+                // Init editable fields với AI result
+                setEditFoodName(data.result.foodName)
+                setEditCalories(data.result.calories)
+                setEditProtein(data.result.protein)
+                setEditCarbs(data.result.carbs)
+                setEditFat(data.result.fat)
                 setState('result')
             }
         } catch {
@@ -74,12 +88,13 @@ export default function ScanPage() {
     const handleSave = async () => {
         if (!result) return
         setSaving(true)
+        // Dùng edited values thay vì result gốc
         const res = await saveMeal({
-            foodName: result.foodName,
-            calories: result.calories,
-            protein: result.protein,
-            carbs: result.carbs,
-            fat: result.fat,
+            foodName: editFoodName || result.foodName,
+            calories: Number(editCalories) || result.calories,
+            protein: Number(editProtein) || 0,
+            carbs: Number(editCarbs) || 0,
+            fat: Number(editFat) || 0,
         })
         setSaving(false)
         if (res.error) {
@@ -114,7 +129,7 @@ export default function ScanPage() {
                 <p className="text-slate-500 text-sm mt-0.5">Upload a photo to get instant nutrition analysis</p>
             </div>
 
-            {/* Image Upload / Preview — glass card */}
+            {/* Image Upload / Preview */}
             <div className="glass-card rounded-[2rem] overflow-hidden border border-white/40">
                 {!imageData ? (
                     <div
@@ -126,7 +141,7 @@ export default function ScanPage() {
                             <Camera className="h-8 w-8" />
                         </div>
                         <div className="text-center">
-                            <p className="font-semibold text-slate-800">Chụp ảnh hoặc chọn từ thư viện</p>
+                            <p className="font-semibold text-slate-800">Chup anh hoac chon tu thu vien</p>
                             <p className="text-sm text-slate-500 mt-1">JPG, PNG, WEBP</p>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
@@ -136,7 +151,7 @@ export default function ScanPage() {
                                 className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl hoverboard-gradient text-white font-semibold text-sm min-h-[44px] touch-target transition-all active:scale-95"
                             >
                                 <Camera className="h-5 w-5" />
-                                Chụp ảnh
+                                Chup anh
                             </button>
                             <button
                                 type="button"
@@ -144,54 +159,31 @@ export default function ScanPage() {
                                 className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-100 text-slate-700 font-semibold text-sm min-h-[44px] touch-target hover:bg-slate-200 transition-all active:scale-95"
                             >
                                 <ImageIcon className="h-5 w-5" />
-                                Thư viện ảnh
+                                Thu vien anh
                             </button>
                         </div>
-                        <p className="text-xs text-slate-400">hoặc kéo thả ảnh vào đây</p>
-                        <input
-                            ref={cameraInputRef}
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="hidden"
-                            onChange={handleFileInput}
-                            aria-label="Chụp ảnh món ăn"
-                        />
-                        <input
-                            ref={galleryInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleFileInput}
-                            aria-label="Chọn ảnh từ thư viện"
-                        />
+                        <p className="text-xs text-slate-400">hoac keo tha anh vao day</p>
+                        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
+                            className="hidden" onChange={handleFileInput} aria-label="Chup anh mon an" />
+                        <input ref={galleryInputRef} type="file" accept="image/*"
+                            className="hidden" onChange={handleFileInput} aria-label="Chon anh tu thu vien" />
                     </div>
                 ) : (
                     <div className="relative p-2">
                         <div className="relative h-64 w-full rounded-2xl overflow-hidden">
-                            <Image
-                                src={imageData}
-                                alt="Food preview"
-                                fill
-                                className="object-cover"
-                                unoptimized
-                            />
+                            <Image src={imageData} alt="Food preview" fill className="object-cover" unoptimized />
                             {state === 'analyzing' && (
                                 <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
                                     <div className="text-center space-y-3 text-white">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-400" />
-                                        <p className="text-sm font-medium">Analyzing with AI…</p>
+                                        <p className="text-sm font-medium">Analyzing with AI...</p>
                                     </div>
                                 </div>
                             )}
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
+                        <Button variant="ghost" size="icon"
                             className="absolute top-4 right-4 min-w-[44px] min-h-[44px] bg-white/90 backdrop-blur-sm hover:bg-white rounded-xl touch-target flex items-center justify-center"
-                            onClick={reset}
-                            aria-label="Remove image"
-                        >
+                            onClick={reset} aria-label="Remove image">
                             <RotateCcw className="h-4 w-4 text-slate-600" />
                         </Button>
                     </div>
@@ -199,11 +191,8 @@ export default function ScanPage() {
             </div>
 
             {state === 'preview' && (
-                <Button
-                    className="w-full gap-2 hoverboard-gradient text-white font-bold rounded-2xl py-4 min-h-[44px] shadow-lg shadow-emerald-500/25 touch-target"
-                    size="lg"
-                    onClick={analyze}
-                >
+                <Button className="w-full gap-2 hoverboard-gradient text-white font-bold rounded-2xl py-4 min-h-[44px] shadow-lg shadow-emerald-500/25 touch-target"
+                    size="lg" onClick={analyze}>
                     <Camera className="h-5 w-5" />
                     Analyze with AI
                 </Button>
@@ -225,30 +214,67 @@ export default function ScanPage() {
 
             {state === 'result' && result && (
                 <div className="glass-card rounded-[2rem] p-6 border border-white/40">
-                    <div className="flex items-start justify-between gap-2 mb-4">
-                        <h2 className="text-lg font-bold text-slate-800">{result.foodName}</h2>
+
+                    {/* Confidence badge */}
+                    <div className="flex justify-end mb-3">
                         <Badge variant="outline" className={confidenceColor[result.confidence]}>
                             {result.confidence} confidence
                         </Badge>
                     </div>
-                    <div className="flex items-center gap-2 text-2xl font-bold text-slate-800 mb-4">
-                        <Flame className="h-6 w-6 text-emerald-500" />
-                        <span>{result.calories}</span>
+
+                    {/* EDITABLE food name */}
+                    <div className="flex items-center gap-2 mb-4">
+                        <Pencil className="h-4 w-4 text-emerald-400 shrink-0" />
+                        <input
+                            type="text"
+                            value={editFoodName}
+                            onChange={(e) => setEditFoodName(e.target.value)}
+                            placeholder="Enter food name..."
+                            className="text-xl font-black text-slate-800 bg-transparent border-b-2 border-emerald-300 focus:border-emerald-500 outline-none w-full pb-0.5"
+                        />
+                    </div>
+
+                    {/* EDITABLE calories */}
+                    <div className="flex items-center gap-2 mb-5 p-3 bg-slate-50 rounded-2xl">
+                        <Flame className="h-5 w-5 text-emerald-500 shrink-0" />
+                        <input
+                            type="number"
+                            value={editCalories}
+                            onChange={(e) => setEditCalories(Number(e.target.value))}
+                            min={0}
+                            className="text-2xl font-black text-slate-800 bg-transparent outline-none w-24"
+                        />
                         <span className="text-base font-normal text-slate-500">kcal</span>
                     </div>
+
+                    {/* EDITABLE macros */}
                     <div className="grid grid-cols-3 gap-3 mb-5">
-                        <MacroItem icon={Beef} label="Protein" value={result.protein} color="text-blue-500" bg="bg-blue-100" />
-                        <MacroItem icon={Wheat} label="Carbs" value={result.carbs} color="text-amber-600" bg="bg-amber-100" />
-                        <MacroItem icon={Droplets} label="Fat" value={result.fat} color="text-orange-500" bg="bg-orange-100" />
+                        <EditableMacro
+                            icon={Beef} label="Protein" value={editProtein}
+                            onChange={setEditProtein} color="text-blue-500" bg="bg-blue-100"
+                        />
+                        <EditableMacro
+                            icon={Wheat} label="Carbs" value={editCarbs}
+                            onChange={setEditCarbs} color="text-amber-600" bg="bg-amber-100"
+                        />
+                        <EditableMacro
+                            icon={Droplets} label="Fat" value={editFat}
+                            onChange={setEditFat} color="text-orange-500" bg="bg-orange-100"
+                        />
                     </div>
+
+                    {/* AI disclaimer nếu confidence thấp */}
+                    {result.confidence === 'low' && (
+                        <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 mb-4">
+                            ⚠️ AI khong chac chan ve mon an nay. Vui long kiem tra va chinh sua thong tin truoc khi luu.
+                        </p>
+                    )}
+
                     {!saved ? (
-                        <Button
-                            className="w-full gap-2 hoverboard-gradient text-white font-bold rounded-2xl py-3.5"
-                            onClick={handleSave}
-                            disabled={saving}
-                        >
+                        <Button className="w-full gap-2 hoverboard-gradient text-white font-bold rounded-2xl py-3.5"
+                            onClick={handleSave} disabled={saving}>
                             {saving ? (
-                                <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
+                                <><Loader2 className="h-4 w-4 animate-spin" />Saving...</>
                             ) : (
                                 <>Save to Log</>
                             )}
@@ -265,16 +291,13 @@ export default function ScanPage() {
     )
 }
 
-function MacroItem({
-    icon: Icon,
-    label,
-    value,
-    color,
-    bg,
+function EditableMacro({
+    icon: Icon, label, value, onChange, color, bg,
 }: {
     icon: React.ElementType
     label: string
     value: number
+    onChange: (v: number) => void
     color: string
     bg: string
 }) {
@@ -283,8 +306,14 @@ function MacroItem({
             <div className={`p-1.5 rounded-xl ${bg}`}>
                 <Icon className={`h-3.5 w-3.5 ${color}`} />
             </div>
-            <span className="text-base font-bold text-slate-800">{value}g</span>
-            <span className="text-xs text-slate-500">{label}</span>
+            <input
+                type="number"
+                value={value}
+                onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
+                min={0}
+                className="text-base font-black text-slate-800 bg-transparent outline-none w-full text-center border-b border-slate-200 focus:border-emerald-400"
+            />
+            <span className="text-[10px] text-slate-400">g {label}</span>
         </div>
     )
 }
