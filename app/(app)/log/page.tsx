@@ -5,12 +5,13 @@ import { useState, useEffect } from 'react'
 import { getMealsForDate, relogMeal, toggleFavorite } from '@/app/actions/meals'
 import { MealCard } from '@/components/meal-card'
 import { QuickRelog } from '@/components/quick-relog'
-import { BookOpen, Flame, Heart } from 'lucide-react'
+import { BookOpen, Flame, Heart, Info } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { MacroPill } from '@/components/macro-pill'
 import { DatePicker } from '@/components/date-picker'
+import { toast } from 'sonner'
 
 type Meal = {
   id: string
@@ -32,6 +33,7 @@ export default function LogPage() {
   const [meals, setMeals] = useState<Meal[]>([])
   const [recentMeals, setRecentMeals] = useState<Meal[]>([])
   const [loading, setLoading] = useState(true)
+  const [showHint, setShowHint] = useState(false)
 
   const dateObj = new Date(date + 'T12:00:00')
   const dayName = DAYS[dateObj.getDay()]
@@ -50,7 +52,6 @@ export default function LogPage() {
     })
   }, [date])
 
-  // Fetch recent meals (last 10) for QuickRelog
   useEffect(() => {
     getMealsForDate('recent').then((data) => {
       setRecentMeals(data as Meal[])
@@ -69,7 +70,7 @@ export default function LogPage() {
 
   const handleRelog = async (meal: { food_name: string; calories: number; protein: number; carbs: number; fat: number }) => {
     await relogMeal(meal)
-    // Refresh nếu đang xem hôm nay
+    toast.success(`Da log lai: ${meal.food_name} (${meal.calories} kcal)`)
     if (date === today) {
       const data = await getMealsForDate(today)
       setMeals(data as Meal[])
@@ -77,19 +78,62 @@ export default function LogPage() {
   }
 
   const handleToggleFavorite = async (mealId: string) => {
+    const meal = meals.find(m => m.id === mealId)
+    const willFavorite = !meal?.is_favorite
     await toggleFavorite(mealId)
     setMeals(prev => prev.map(m =>
-      m.id === mealId ? { ...m, is_favorite: !m.is_favorite } : m
+      m.id === mealId ? { ...m, is_favorite: willFavorite } : m
     ))
+    if (willFavorite) {
+      toast.success('Da luu yeu thich! Mon nay se hien dau tien khi log lai nhanh.')
+    } else {
+      toast('Da bo khoi yeu thich')
+    }
   }
 
   return (
     <div className="space-y-6 max-w-lg mx-auto page-enter">
-      <PageHeader title="Meal Log 📋" subtitle="Xem bữa ăn theo ngày bạn chọn" />
+      <PageHeader title="Meal Log" subtitle="Xem bua an theo ngay ban chon" />
 
-      {/* QuickRelog — chỉ hiện khi xem hôm nay */}
+      {/* QuickRelog — chi hien khi xem hom nay */}
       {date === today && recentMeals.length > 0 && (
-        <QuickRelog recentMeals={recentMeals} onRelog={handleRelog} />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Log lai nhanh
+            </p>
+            <button
+              onClick={() => setShowHint(v => !v)}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-600 transition-colors"
+            >
+              <Info size={13} />
+              <span>{showHint ? 'An huong dan' : 'Huong dan'}</span>
+            </button>
+          </div>
+
+          {/* Hint box — hien/an khi bam huong dan */}
+          {showHint && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-2">
+              <p className="text-xs font-black text-emerald-700 mb-1">Cach su dung:</p>
+              <div className="flex items-start gap-2">
+                <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-black">+</span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  <span className="font-bold text-slate-700">Nut cong xanh</span> — Log lai mon an nay vao hom nay chi voi 1 cham. Khong can scan lai!
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <Heart size={16} className="text-red-400 fill-red-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-600">
+                  <span className="font-bold text-slate-700">Trai tim</span> — Danh dau yeu thich. Mon yeu thich se hien dau tien de ban log lai nhanh hon.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <QuickRelog recentMeals={recentMeals} onRelog={handleRelog} />
+        </div>
       )}
 
       {/* Date selector */}
@@ -120,14 +164,8 @@ export default function LogPage() {
           })}
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-500 shrink-0">Chọn ngày:</label>
-          <DatePicker
-            value={date}
-            max={today}
-            onChange={setDate}
-            placeholder="Chọn ngày"
-            className="flex-1"
-          />
+          <label className="text-xs font-medium text-slate-500 shrink-0">Chon ngay:</label>
+          <DatePicker value={date} max={today} onChange={setDate} placeholder="Chon ngay" className="flex-1" />
         </div>
       </div>
 
@@ -148,13 +186,17 @@ export default function LogPage() {
         </div>
       </div>
 
+      {/* Hint nho cho meal cards */}
       {meals.length > 0 && (
-        <p className="text-xs text-slate-400 text-center md:hidden">
-          Tap delete icon to remove meals
-        </p>
+        <div className="flex items-center gap-2 px-1">
+          <Heart size={13} className="text-red-400 fill-red-400 shrink-0" />
+          <p className="text-xs text-slate-400">
+            Bam trai tim de luu yeu thich · Bam thung rac de xoa bua an
+          </p>
+        </div>
       )}
 
-      {/* Meal cards with favorite toggle */}
+      {/* Meal cards */}
       <div className="space-y-3">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
@@ -163,8 +205,8 @@ export default function LogPage() {
         ) : meals.length === 0 ? (
           <EmptyState
             icon={<BookOpen className="h-12 w-12 text-slate-300 mx-auto" />}
-            title="No meals yet"
-            subtitle="Scan a meal to start tracking"
+            title="Chua co bua an"
+            subtitle="Scan mon an de bat dau theo doi"
             ctaLabel="Scan Food"
             ctaHref="/scan"
           />
@@ -172,9 +214,9 @@ export default function LogPage() {
           meals.map((meal) => (
             <div key={meal.id} className="relative">
               <MealCard meal={meal} />
-              {/* Favorite button */}
               <button
                 onClick={() => handleToggleFavorite(meal.id)}
+                title={meal.is_favorite ? 'Bo yeu thich' : 'Luu vao yeu thich'}
                 className="absolute top-3 right-12 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 shadow-sm hover:scale-110 transition-transform"
                 aria-label="Toggle favorite"
               >
