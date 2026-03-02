@@ -53,16 +53,36 @@ export default function ScanPage() {
         if (file && file.type.startsWith('image/')) handleFile(file)
     }
 
+    // Resize anh truoc khi gui len API - tranh timeout tren mobile
+    const resizeImage = (dataUrl: string, maxWidth = 800): Promise<string> => {
+        return new Promise((resolve) => {
+            const img = document.createElement('img')
+            img.onload = () => {
+                const canvas = document.createElement('canvas')
+                const scale = Math.min(1, maxWidth / img.width)
+                canvas.width = img.width * scale
+                canvas.height = img.height * scale
+                const ctx = canvas.getContext('2d')!
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+                resolve(canvas.toDataURL('image/jpeg', 0.8))
+            }
+            img.src = dataUrl
+        })
+    }
+
     const analyze = async () => {
         if (!imageData) return
         setState('analyzing')
         setErrorMsg(null)
 
         try {
+            // Resize anh truoc khi gui - giam size tu ~5MB xuong ~200KB
+            const resized = await resizeImage(imageData, 800)
+
             const res = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData }),
+                body: JSON.stringify({ image: resized }),
             })
             const data = await res.json()
 
