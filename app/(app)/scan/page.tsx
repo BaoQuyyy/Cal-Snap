@@ -161,7 +161,7 @@ export default function ScanPage() {
                             <Camera className="h-8 w-8" />
                         </div>
                         <div className="text-center">
-                            <p className="font-semibold text-slate-800">Chup anh hoac chon tu thu vien</p>
+                            <p className="font-semibold text-slate-800">Chụp ảnh hoặc chọn từ thư viện</p>
                             <p className="text-sm text-slate-500 mt-1">JPG, PNG, WEBP</p>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
@@ -171,7 +171,7 @@ export default function ScanPage() {
                                 className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl hoverboard-gradient text-white font-semibold text-sm min-h-[44px] touch-target transition-all active:scale-95"
                             >
                                 <Camera className="h-5 w-5" />
-                                Chup anh
+                                Chụp ảnh
                             </button>
                             <button
                                 type="button"
@@ -179,14 +179,14 @@ export default function ScanPage() {
                                 className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-slate-100 text-slate-700 font-semibold text-sm min-h-[44px] touch-target hover:bg-slate-200 transition-all active:scale-95"
                             >
                                 <ImageIcon className="h-5 w-5" />
-                                Thu vien anh
+                                Thư viện ảnh
                             </button>
                         </div>
-                        <p className="text-xs text-slate-400">hoac keo tha anh vao day</p>
+                        <p className="text-xs text-slate-400">hoặc thả ảnh vào đây</p>
                         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
-                            className="hidden" onChange={handleFileInput} aria-label="Chup anh mon an" />
+                            className="hidden" onChange={handleFileInput} aria-label="Chụp ảnh món ăn" />
                         <input ref={galleryInputRef} type="file" accept="image/*"
-                            className="hidden" onChange={handleFileInput} aria-label="Chon anh tu thu vien" />
+                            className="hidden" onChange={handleFileInput} aria-label="Chọn ảnh từ thư viện" />
                     </div>
                 ) : (
                     <div className="relative p-2">
