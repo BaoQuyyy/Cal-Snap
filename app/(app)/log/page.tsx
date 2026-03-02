@@ -99,9 +99,6 @@ export default function LogPage() {
       {date === today && recentMeals.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Log lai nhanh
-            </p>
             <button
               onClick={() => setShowHint(v => !v)}
               className="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-600 transition-colors"
